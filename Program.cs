@@ -114,41 +114,34 @@ namespace Web_Scraper
                 wait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
 
                 Thread.Sleep(5000);
-                IWebElement result = driver.FindElement(By.CssSelector(".ytd-section-list-renderer"));
+                /*IWebElement result = driver.FindElement(By.CssSelector(".ytd-section-list-renderer"));
                 Console.WriteLine(result.Text);
                 ReadOnlyCollection<IWebElement> videos = result.FindElements(By.CssSelector(".ytd-video-renderer"));
                 Console.WriteLine(videos.Count);
-                if (videos.Count == 0)
+                if(videos.Count < numberVideos)
                 {
-                    Console.WriteLine($"No results found for {searchTerm} on Youtube");
-                }
-                else
+                    Console.WriteLine($"Not enough results with the term \"{searchTerm}\", we only found {videos.Count}" +
+                        $"results:");
+                    numberVideos = videos.Count;
+                }*/
+                Console.WriteLine($"{numberVideos} most recently uploaded videos when looking for \"{searchTerm}\"");
+                for (int i = 1; i < numberVideos + 1; i++)
                 {
-                    if(videos.Count < numberVideos)
-                    {
-                        Console.WriteLine($"Not enough results with the term \"{searchTerm}\", we only found {videos.Count}" +
-                            $"results:");
-                        numberVideos = videos.Count;
-                    }
-                    Console.WriteLine($"{numberVideos} most recently uploaded videos when looking for \"{searchTerm}\"");
-                    for (int i = 1; i < numberVideos + 1; i++)
-                    {
-                        Video video = new Video();
-                        video.Link = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/ytd-thumbnail/a")).GetAttribute("href");
-                        video.Title = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/div/h3/a/yt-formatted-string")).Text;
-                        video.Uploader = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[2]/ytd-channel-name/div/div/yt-formatted-string/a")).Text;
-                        video.Views = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/ytd-video-meta-block/div[1]/div[2]/span[1]")).Text;
-                        videoObjects.Add(video);
-                        Console.WriteLine($"-------------------------------------------------------Video{i}\nLink: {videoObjects[i - 1].Link}" +
-                            $"\nTitle: {videoObjects[i - 1].Title}\nUploader: {videoObjects[i - 1].Uploader}\nViews: {videoObjects[i - 1].Views}\n");
-                    }
-                    using (var writer = new StreamWriter("videos.csv"))
-                    using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-                    {
-                        csv.WriteRecords(videoObjects);
-                    }
-                    PrettyWrite(videoObjects, "videos.json");
+                    Video video = new Video();
+                    video.Link = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/ytd-thumbnail/a")).GetAttribute("href");
+                    video.Title = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/div/h3/a/yt-formatted-string")).Text;
+                    video.Uploader = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[2]/ytd-channel-name/div/div/yt-formatted-string/a")).Text;
+                    video.Views = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/ytd-video-meta-block/div[1]/div[2]/span[1]")).Text;
+                    videoObjects.Add(video);
+                    Console.WriteLine($"-------------------------------------------------------Video{i}\nLink: {videoObjects[i - 1].Link}" +
+                        $"\nTitle: {videoObjects[i - 1].Title}\nUploader: {videoObjects[i - 1].Uploader}\nViews: {videoObjects[i - 1].Views}\n");
                 }
+                using (var writer = new StreamWriter("videos.csv"))
+                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                {
+                    csv.WriteRecords(videoObjects);
+                }
+                PrettyWrite(videoObjects, "videos.json");
             }
             else if (choice == 2)
             {
