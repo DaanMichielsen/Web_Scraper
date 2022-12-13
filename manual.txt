@@ -1,0 +1,20 @@
+first you choose an option
+
+Option 1 YouTube:
+If you chose YouTube you can enter a searchterm for the application to find the most recent uploaded videos that match the search term.
+Next you choose the amount of results you would like to get.
+Note: if the search term has no results it does not work and returns an error in the code.
+If there are less results than the requested amount the code also returns an error.
+
+Option 2 ICT-Jobs:
+You can enter a job title or company to look for and this will return the most recent posted job offers that match the search.
+Next you choose the amount of results you would like to get.
+Note: if the search term has no results it does not work and returns an error in the code.
+If there are less results than the requested amount the code also returns an error.
+
+Option 3 HTLV:
+You can enter a player name, team name, event name or article title.
+Next you choose the amount of results you would like to get.
+The application returns the results for the search, this can contain players, teams, events, articles that match the search term.
+Note: if the search term has no results it does not work and returns an error in the code.
+If there are less results than the requested amount the code also returns an error.
