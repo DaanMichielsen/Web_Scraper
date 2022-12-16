@@ -20,6 +20,10 @@ using OpenQA.Selenium.DevTools.V105.CSS;
 using OpenQA.Selenium.DevTools.V105.Media;
 using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
+using System.Text;
+using System.Runtime.CompilerServices;
+using OpenQA.Selenium.DevTools.V105.Debugger;
+using System.Collections;
 
 namespace Web_Scraper
 {
@@ -28,6 +32,12 @@ namespace Web_Scraper
         public string Link { get; set; }
         public string Title { get; set; }
         public string Uploader { get; set; }
+        public string Views { get; set; }
+    }
+    public class Short
+    {
+        public string Link { get; set; }
+        public string Title { get; set; }
         public string Views { get; set; }
     }
     public class Job
@@ -88,42 +98,54 @@ namespace Web_Scraper
             var jsonString = JsonSerializer.Serialize(obj, options);
             File.WriteAllText(fileName, jsonString);
         }
-        private static int StartBrowser(string search_term)
+        
+        public static ChromeOptions SetBrowserLanguage()
         {
-            IWebDriver driver = new ChromeDriver();
-            Console.WriteLine("Choose an option to look for:\n1. Search for video on youtube\n2. Search for jobs on ICT-jobs\n3. Search for results on HLTV\n");
-            int choice = Convert.ToInt32(Console.ReadLine());
-            return choice;
+            var languages = new Dictionary<string, string>()
+            {
+            {"English", "--lang=en"},
+            {"Russian", "--lang=ru"},
+            {"Spanish", "--lang=es"},
+            {"French", "--lang=fr"},
+            {"German", "--lang=de"},
+            {"Japanese", "--lang=ja"},
+            {"Chinese Simplified", "--lang=zh-Hans"},
+            {"Chinese Traditional", "--lang=zh-Hant"},
+            {"Dutch", "--lang=nl"},
+            };
+            Console.WriteLine($"Choose browser language:");
+            foreach (var language in languages.Select((Entry, Index) => new { Entry, Index }))
+            {
+                Console.WriteLine($"{language.Index + 1}. {language.Entry.Key}");
+            }
+            int language_choice = Convert.ToInt32(Console.ReadLine());
+            ChromeOptions opt = new ChromeOptions();
+            opt.AddArguments(languages.ElementAt(language_choice -1).Value);
+            return opt;
         }
         static void Main(string[] args)
         {
-            Console.WriteLine("Choose an option to look for:\n1. Search for video on youtube\n2. Search for jobs on ICT-jobs\n3. Search for results on HLTV\n");
+            Console.OutputEncoding = Encoding.UTF8;
+            Console.WriteLine("Choose an option to look for:\n1. Search for videos/shorts on youtube\n2. Search for jobs on ICT-jobs\n3. Search for results on HLTV\n");
             int choice = Convert.ToInt32(Console.ReadLine());
             if (choice == 1)
             {
+                ChromeOptions language = SetBrowserLanguage();
+                Console.WriteLine("Do you wish to get(choose option):\n1.videos\n2.shorts");
+                int choice_type = Convert.ToInt32(Console.ReadLine());
                 var videoObjects = new List<Video>();
                 Console.WriteLine("Enter a search term for YouTube videos: ");
                 string searchTerm = Console.ReadLine();
                 Console.WriteLine("How many videos would you like to return: ");
                 int numberVideos = Convert.ToInt32(Console.ReadLine());
                 string url_youtube = "https://www.youtube.com/results?search_query=" + searchTerm + "&sp=CAI%253D";
-                IWebDriver driver = new ChromeDriver();
+                IWebDriver driver = new ChromeDriver(language);
                 driver.Navigate().GoToUrl(url_youtube);
                 var timeout = 10000; /* Maximum wait time of 10 seconds */
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeout));
                 wait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
 
                 Thread.Sleep(5000);
-                /*IWebElement result = driver.FindElement(By.CssSelector(".ytd-section-list-renderer"));
-                Console.WriteLine(result.Text);
-                ReadOnlyCollection<IWebElement> videos = result.FindElements(By.CssSelector(".ytd-video-renderer"));
-                Console.WriteLine(videos.Count);
-                if(videos.Count < numberVideos)
-                {
-                    Console.WriteLine($"Not enough results with the term \"{searchTerm}\", we only found {videos.Count}" +
-                        $"results:");
-                    numberVideos = videos.Count;
-                }*/
                 Console.WriteLine($"{numberVideos} most recently uploaded videos when looking for \"{searchTerm}\"");
                 for (int i = 1; i < numberVideos + 1; i++)
                 {
@@ -142,6 +164,7 @@ namespace Web_Scraper
                     csv.WriteRecords(videoObjects);
                 }
                 PrettyWrite(videoObjects, "videos.json");
+                
             }
             else if (choice == 2)
             {
