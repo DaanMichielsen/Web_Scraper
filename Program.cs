@@ -1,29 +1,13 @@
 ﻿using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
-using System;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.IO;
-using System.Reflection;
-using System.Threading;
-using OpenQA.Selenium.Safari;
-using System.Collections.Generic;
-using System.Web;
-using System.Formats.Asn1;
 using System.Globalization;
 using CsvHelper;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using OpenQA.Selenium.DevTools.V105.CSS;
-using OpenQA.Selenium.DevTools.V105.Media;
-using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
 using System.Text;
-using System.Runtime.CompilerServices;
-using OpenQA.Selenium.DevTools.V105.Debugger;
-using System.Collections;
 
 namespace Web_Scraper
 {
@@ -131,9 +115,6 @@ namespace Web_Scraper
             if (choice == 1)
             {
                 ChromeOptions language = SetBrowserLanguage();
-                Console.WriteLine("Do you wish to get(choose option):\n1.videos\n2.shorts");
-                int choice_type = Convert.ToInt32(Console.ReadLine());
-                var videoObjects = new List<Video>();
                 Console.WriteLine("Enter a search term for YouTube videos: ");
                 string searchTerm = Console.ReadLine();
                 Console.WriteLine("How many videos would you like to return: ");
@@ -141,30 +122,43 @@ namespace Web_Scraper
                 string url_youtube = "https://www.youtube.com/results?search_query=" + searchTerm + "&sp=CAI%253D";
                 IWebDriver driver = new ChromeDriver(language);
                 driver.Navigate().GoToUrl(url_youtube);
-                var timeout = 10000; /* Maximum wait time of 10 seconds */
+                var timeout = 10000; 
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeout));
                 wait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
-
+                var videoObjects = new List<Video>();
                 Thread.Sleep(5000);
-                Console.WriteLine($"{numberVideos} most recently uploaded videos when looking for \"{searchTerm}\"");
-                for (int i = 1; i < numberVideos + 1; i++)
+                try
                 {
-                    Video video = new Video();
-                    video.Link = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/ytd-thumbnail/a")).GetAttribute("href");
-                    video.Title = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/div/h3/a/yt-formatted-string")).Text;
-                    video.Uploader = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[2]/ytd-channel-name/div/div/yt-formatted-string/a")).Text;
-                    video.Views = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/ytd-video-meta-block/div[1]/div[2]/span[1]")).Text;
-                    videoObjects.Add(video);
-                    Console.WriteLine($"-------------------------------------------------------Video{i}\nLink: {videoObjects[i - 1].Link}" +
-                        $"\nTitle: {videoObjects[i - 1].Title}\nUploader: {videoObjects[i - 1].Uploader}\nViews: {videoObjects[i - 1].Views}\n");
+                    Console.WriteLine($"{numberVideos} most recently uploaded videos when looking for \"{searchTerm}\"");
+                    for (int i = 1; i < numberVideos + 1; i++)
+                    {
+                        Video video = new Video();
+                        video.Link = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/ytd-thumbnail/a")).GetAttribute("href");
+                        video.Title = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/div/h3/a/yt-formatted-string")).Text;
+                        video.Uploader = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[2]/ytd-channel-name/div/div/yt-formatted-string/a")).Text;
+                        video.Views = driver.FindElement(By.XPath($"//*[@id=\"contents\"]/ytd-video-renderer[{i}]/div[1]/div/div[1]/ytd-video-meta-block/div[1]/div[2]/span[1]")).Text;
+                        videoObjects.Add(video);
+                        Console.WriteLine($"-------------------------------------------------------Video{i}\nLink: {videoObjects[i - 1].Link}" +
+                            $"\nTitle: {videoObjects[i - 1].Title}\nUploader: {videoObjects[i - 1].Uploader}\nViews: {videoObjects[i - 1].Views}\n");
+                    }
+                    using (var writer = new StreamWriter("videos.csv"))
+                    using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                    {
+                        csv.WriteRecords(videoObjects);
+                    }
+                    PrettyWrite(videoObjects, "videos.json");
                 }
-                using (var writer = new StreamWriter("videos.csv"))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                catch
                 {
-                    csv.WriteRecords(videoObjects);
+                    Console.WriteLine("---------------------------------------------------------------\n" +
+                        "No results found for that search term, try another search term.\n" +
+                        "---------------------------------------------------------------");
                 }
-                PrettyWrite(videoObjects, "videos.json");
-                
+                finally
+                {
+                    driver.Quit();
+                }
+                Console.WriteLine("Action finished");
             }
             else if (choice == 2)
             {
@@ -176,13 +170,11 @@ namespace Web_Scraper
                 string url_ict_jobs = "https://www.ictjob.be/en/search-it-jobs?keywords=" + searchTerm;
                 IWebDriver driver = new ChromeDriver();
                 driver.Navigate().GoToUrl(url_ict_jobs);
-                driver.FindElement(By.Id("sort-by-date")).Click();
-                var timeout = 10000; /* Maximum wait time of 10 seconds */
+                var timeout = 10000; 
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeout));
                 wait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
-
                 Thread.Sleep(5000);
-
+                driver.FindElement(By.Id("sort-by-date")).Click();
                 Int64 last_height = (Int64)(((IJavaScriptExecutor)driver).ExecuteScript("return document.documentElement.scrollHeight"));
                 while (true)
                 {
@@ -195,26 +187,40 @@ namespace Web_Scraper
                         break;
                     last_height = new_height;
                 }
-                ReadOnlyCollection<IWebElement> jobs = driver.FindElements(By.CssSelector("li[itemtype=\"http://schema.org/JobPosting\"]"));
-                Console.WriteLine($"{numberJobs} most recently uploaded jobs when looking for \"{searchTerm}\"");
-                for (int i = 0; i<numberJobs; i++)
+                try
                 {
-                    Job job = new Job();
-                    job.Title = jobs[i].FindElement(By.CssSelector(".job-title")).Text;
-                    job.Company = jobs[i].FindElement(By.CssSelector(".job-company")).Text;
-                    job.Location = jobs[i].FindElement(By.XPath("//*[@id=\"search-result-body\"]/div/ul/li/span[2]/span[2]/span[2]/span/span")).Text.Replace(", ", "/");
-                    job.keywords = jobs[i].FindElement(By.CssSelector(".job-keywords")).Text.Replace(", ", "/");
-                    job.Link = jobs[i].FindElement(By.CssSelector(".search-item-link")).GetAttribute("href");
-                    jobObjects.Add(job);
-                    Console.WriteLine($"-------------------------------------------------------Job {i+1}\nTitle: {job.Title}" +
-                       $"\nCompany: {job.Company}\nLocation: {job.Location}\nKeywords: {job.keywords}\nLink: {job.Link}\n");
+                    ReadOnlyCollection<IWebElement> jobs = driver.FindElements(By.CssSelector("li[itemtype=\"http://schema.org/JobPosting\"]"));
+                    Console.WriteLine($"{numberJobs} most recently uploaded jobs when looking for \"{searchTerm}\"");
+                    for (int i = 0; i < numberJobs; i++)
+                    {
+                        Job job = new Job();
+                        job.Title = jobs[i].FindElement(By.CssSelector(".job-title")).Text;
+                        job.Company = jobs[i].FindElement(By.CssSelector(".job-company")).Text;
+                        job.Location = jobs[i].FindElement(By.XPath("//*[@id=\"search-result-body\"]/div/ul/li/span[2]/span[2]/span[2]/span/span")).Text.Replace(", ", "/");
+                        job.keywords = jobs[i].FindElement(By.CssSelector(".job-keywords")).Text.Replace(", ", "/");
+                        job.Link = jobs[i].FindElement(By.CssSelector(".search-item-link")).GetAttribute("href");
+                        jobObjects.Add(job);
+                        Console.WriteLine($"-------------------------------------------------------Job {i + 1}\nTitle: {job.Title}" +
+                           $"\nCompany: {job.Company}\nLocation: {job.Location}\nKeywords: {job.keywords}\nLink: {job.Link}\n");
+                    }
+                    using (var writer = new StreamWriter("jobs.csv"))
+                    using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                    {
+                        csv.WriteRecords(jobObjects);
+                    }
+                    PrettyWrite(jobObjects, "jobs.json");
                 }
-                using (var writer = new StreamWriter("jobs.csv"))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                catch
                 {
-                    csv.WriteRecords(jobObjects);
+                    Console.WriteLine("---------------------------------------------------------------\n" +
+                        "No results found for that search term, try another search term.\n" +
+                        "---------------------------------------------------------------");
                 }
-                PrettyWrite(jobObjects, "jobs.json");
+                finally
+                {
+                    driver.Quit();
+                }
+                Console.WriteLine("Action finished");
             }
             else if(choice == 3)
             {
@@ -241,102 +247,125 @@ namespace Web_Scraper
                         break;
                     last_height = new_height;
                 }
-                ReadOnlyCollection<IWebElement> elements = driver.FindElements(By.CssSelector("table[class=\"table\"]"));
-                var hltvObjectList = new List<HLTVObject>();
-                foreach (IWebElement element in elements)
+                try
                 {
-                    Console.WriteLine(element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text + "(s)\n");
-                    if(element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Player")
+                    ReadOnlyCollection<IWebElement> elements = driver.FindElements(By.CssSelector("table[class=\"table\"]"));
+                    if (elements.Count == 0)
                     {
-                        ReadOnlyCollection<IWebElement> players = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
-                        int counter = 1;
-                        foreach (IWebElement player_elem in players)
-                        {
-                            Player player = new Player();
-                            HLTVObject hltvObject = new HLTVObject();
-                            hltvObject.Type = "player";
-                            player.Nationality = hltvObject.Nationality = player_elem.FindElement(By.CssSelector("img[class=\"flag\"]")).GetAttribute("title");
-                            string fullName = player_elem.FindElement(By.CssSelector("a[href^=\"/player\"]")).Text;
-                            player.InGameName = hltvObject.InGameName =Regex.Replace(fullName, @"\w*\s'|'\s\w*.", "");
-                            player.Name = hltvObject.Name = Regex.Replace(fullName, @"\s'\w*'\s", " ");
-                            player.Link = hltvObject.Link = player_elem.FindElement(By.CssSelector("a[href^=\"/player\"]")).GetAttribute("href");
-                            Console.WriteLine($"Player {counter}---------------------------------------------------------------\n" +
-                                $"Nationality: {player.Nationality}\nName: {player.Name}\nIn Game Name: {player.InGameName}\nLink: {player.Link}");
-                            counter++;
-                            hltvObjectList.Add(hltvObject);
-                        }
-                        counter = 1;
-                        Console.WriteLine("\n");
+                        Console.WriteLine("---------------------------------------------------------------\n" +
+                       "No results found for that search term, try another search term.\n" +
+                       "---------------------------------------------------------------");
                     }
-                    else if(element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Team")
+                    else
                     {
-                        ReadOnlyCollection<IWebElement> teams = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
-                        int counter = 1;
-                        foreach(IWebElement team_elem in teams)
+                        var hltvObjectList = new List<HLTVObject>();
+                        foreach (IWebElement element in elements)
                         {
-                            Team team = new Team();
-                            HLTVObject hltvObject = new HLTVObject();
-                            hltvObject.Type = "Team";
-                            team.Name = hltvObject.Name = team_elem.FindElement(By.CssSelector("a[href^=\"/team\"]")).Text;
-                            team.Link = hltvObject.Link = team_elem.FindElement(By.CssSelector("a[href^=\"/team\"]")).GetAttribute("href");
-                            Console.WriteLine($"Team {counter}---------------------------------------------------------------\n" +
-                                $"Team: { team.Name}\nLink: {team.Link}");
-                            counter++;
-                            hltvObjectList.Add(hltvObject);
+                            Console.WriteLine(element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text + "(s)\n");
+                            if (element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Player")
+                            {
+                                ReadOnlyCollection<IWebElement> players = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
+                                int counter = 1;
+                                foreach (IWebElement player_elem in players)
+                                {
+                                    Player player = new Player();
+                                    HLTVObject hltvObject = new HLTVObject();
+                                    hltvObject.Type = "player";
+                                    player.Nationality = hltvObject.Nationality = player_elem.FindElement(By.CssSelector("img[class=\"flag\"]")).GetAttribute("title");
+                                    string fullName = player_elem.FindElement(By.CssSelector("a[href^=\"/player\"]")).Text;
+                                    player.InGameName = hltvObject.InGameName = Regex.Replace(fullName, @"\w*\s'|'\s\w*.", "");
+                                    player.Name = hltvObject.Name = Regex.Replace(fullName, @"\s'\w*'\s", " ");
+                                    player.Link = hltvObject.Link = player_elem.FindElement(By.CssSelector("a[href^=\"/player\"]")).GetAttribute("href");
+                                    Console.WriteLine($"Player {counter}---------------------------------------------------------------\n" +
+                                        $"Nationality: {player.Nationality}\nName: {player.Name}\nIn Game Name: {player.InGameName}\nLink: {player.Link}");
+                                    counter++;
+                                    hltvObjectList.Add(hltvObject);
+                                }
+                                counter = 1;
+                                Console.WriteLine("\n");
+                            }
+                            else if (element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Team")
+                            {
+                                ReadOnlyCollection<IWebElement> teams = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
+                                int counter = 1;
+                                foreach (IWebElement team_elem in teams)
+                                {
+                                    Team team = new Team();
+                                    HLTVObject hltvObject = new HLTVObject();
+                                    hltvObject.Type = "Team";
+                                    team.Name = hltvObject.Name = team_elem.FindElement(By.CssSelector("a[href^=\"/team\"]")).Text;
+                                    team.Link = hltvObject.Link = team_elem.FindElement(By.CssSelector("a[href^=\"/team\"]")).GetAttribute("href");
+                                    Console.WriteLine($"Team {counter}---------------------------------------------------------------\n" +
+                                        $"Team: {team.Name}\nLink: {team.Link}");
+                                    counter++;
+                                    hltvObjectList.Add(hltvObject);
+                                }
+                                counter = 1;
+                                Console.WriteLine("\n");
+                            }
+                            else if (element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Event")
+                            {
+                                ReadOnlyCollection<IWebElement> events = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
+                                int counter = 1;
+                                foreach (IWebElement event_elem in events)
+                                {
+                                    Event event_ = new Event();
+                                    HLTVObject hltvObject = new HLTVObject();
+                                    hltvObject.Type = "Event";
+                                    event_.Name = hltvObject.Name = event_elem.FindElement(By.CssSelector("a[href^=\"/events\"]")).Text;
+                                    event_.Link = hltvObject.Link = event_elem.FindElement(By.CssSelector("a[href^=\"/events\"]")).GetAttribute("href");
+                                    Console.WriteLine($"Event {counter}---------------------------------------------------------------\n" +
+                                        $"Event: {event_.Name}\nLink: {event_.Link}");
+                                    counter++;
+                                    hltvObjectList.Add(hltvObject);
+                                }
+                                counter = 1;
+                                Console.WriteLine("\n");
+                            }
+                            else if (element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Article")
+                            {
+                                ReadOnlyCollection<IWebElement> articles = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
+                                int counter = 1;
+                                foreach (IWebElement article_elem in articles)
+                                {
+                                    Article article = new Article();
+                                    HLTVObject hltvObject = new HLTVObject();
+                                    hltvObject.Type = "Article";
+                                    article.Region = hltvObject.Region = article_elem.FindElement(By.CssSelector("img[class=\"flag\"]")).GetAttribute("title");
+                                    article.Title = hltvObject.Title = article_elem.FindElement(By.CssSelector("a[href^=\"/news\"]")).Text;
+                                    article.PublishDate = hltvObject.PublishDate = article_elem.FindElement(By.CssSelector("span[data-time-format=\"y-MM-dd\"]")).Text;
+                                    article.Author = hltvObject.Author = article_elem.FindElement(By.CssSelector("a[href^=\"/profile\"]")).Text;
+                                    article.Link = hltvObject.Link = article_elem.FindElement(By.CssSelector("a[href^=\"/news\"]")).GetAttribute("href");
+                                    Console.WriteLine($"Article {counter}---------------------------------------------------------------\n" +
+                                        $"Region: {article.Region}\nTitle: {article.Title}\nPublish date: {article.PublishDate}\nAuthor: {article.Author}\nLink: {article.Link}\n");
+                                    counter++;
+                                    hltvObjectList.Add(hltvObject);
+                                }
+                                counter = 1;
+                                Console.WriteLine("\n");
+                            }
+                            Console.WriteLine(hltvObjectList.Count);
                         }
-                        counter = 1;
-                        Console.WriteLine("\n");
-                    }
-                    else if (element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Event")
-                    {
-                        ReadOnlyCollection<IWebElement> events = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
-                        int counter = 1;
-                        foreach (IWebElement event_elem in events)
+                        using (var writer = new StreamWriter("hltv.csv"))
+                        using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
                         {
-                            Event event_= new Event();
-                            HLTVObject hltvObject = new HLTVObject();
-                            hltvObject.Type = "Event";
-                            event_.Name = hltvObject.Name = event_elem.FindElement(By.CssSelector("a[href^=\"/events\"]")).Text;
-                            event_.Link = hltvObject.Link = event_elem.FindElement(By.CssSelector("a[href^=\"/events\"]")).GetAttribute("href");
-                            Console.WriteLine($"Event {counter}---------------------------------------------------------------\n" + 
-                                $"Event: {event_.Name}\nLink: {event_.Link}");
-                            counter++;
-                            hltvObjectList.Add(hltvObject);
+                            csv.WriteRecords(hltvObjectList);
                         }
-                        counter = 1;
-                        Console.WriteLine("\n");
-                    }
-                    else if(element.FindElement(By.CssSelector("td[class=\"table-header\"]")).Text == "Article")
-                    {
-                        ReadOnlyCollection<IWebElement> articles = element.FindElements(By.CssSelector("tbody tr:not(:first-child)"));
-                        int counter = 1;
-                        foreach(IWebElement article_elem in articles)
-                        {
-                            Article article = new Article();
-                            HLTVObject hltvObject = new HLTVObject();
-                            hltvObject.Type = "Article";
-                            article.Region = hltvObject.Region = article_elem.FindElement(By.CssSelector("img[class=\"flag\"]")).GetAttribute("title");
-                            article.Title = hltvObject.Title = article_elem.FindElement(By.CssSelector("a[href^=\"/news\"]")).Text;
-                            article.PublishDate = hltvObject.PublishDate = article_elem.FindElement(By.CssSelector("span[data-time-format=\"y-MM-dd\"]")).Text;
-                            article.Author = hltvObject.Author = article_elem.FindElement(By.CssSelector("a[href^=\"/profile\"]")).Text;
-                            article.Link = hltvObject.Link = article_elem.FindElement(By.CssSelector("a[href^=\"/news\"]")).GetAttribute("href");
-                            Console.WriteLine($"Article {counter}---------------------------------------------------------------\n" + 
-                                $"Region: {article.Region}\nTitle: {article.Title}\nPublish date: {article.PublishDate}\nAuthor: {article.Author}\nLink: {article.Link}\n");
-                            counter++;
-                            hltvObjectList.Add(hltvObject);
-                        }
-                        counter = 1;
-                        Console.WriteLine("\n");
+                        PrettyWrite(hltvObjectList, "hltv.json");
                     }
                 }
-                using (var writer = new StreamWriter("hltv.csv"))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                catch
                 {
-                    csv.WriteRecords(hltvObjectList);
+                    Console.WriteLine("---------------------------------------------------------------\n" +
+                       "Something went wrong.\n" +
+                       "---------------------------------------------------------------");
                 }
-                PrettyWrite(hltvObjectList, "hltv.json");
+                finally
+                {
+                    driver.Quit();
+                }
+                Console.WriteLine("Action finished");
             }
         }
     }
 }
-
