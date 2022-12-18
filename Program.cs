@@ -1,4 +1,4 @@
-﻿using OpenQA.Selenium;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using System.Collections.ObjectModel;
@@ -8,23 +8,19 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Diagnostics;
+
 
 namespace Web_Scraper
 {
-    public class Video
+    public class Video                  //video object for video results
     {
         public string Link { get; set; }
         public string Title { get; set; }
         public string Uploader { get; set; }
         public string Views { get; set; }
-    }
-    public class Short
-    {
-        public string Link { get; set; }
-        public string Title { get; set; }
-        public string Views { get; set; }
-    }
-    public class Job
+    }              
+    public class Job                    //Job object for job results
     {
         public string Title { get; set; }
         public string Company { get; set; }
@@ -32,24 +28,24 @@ namespace Web_Scraper
         public string keywords { get; set; }
         public string Link { get; set; }
     }
-    public class Player
+    public class Player                 //Player object for player results
     {
         public string Nationality { get; set; }
         public string Name { get; set; }
         public string InGameName { get; set; }
         public string Link { get; set;}
     }
-    public class Team
+    public class Team                   //Team object for team results
     {
         public string Name { get; set; }
         public string Link { get; set; }
     }
-    public class Event
+    public class Event                  //Event object for event results
     {
         public string Name { get; set; }
         public string Link { get; set; }
     }
-    public class Article
+    public class Article                //Article object for article results
     {
         public string Region { get; set; }
         public string Title { get; set; }
@@ -57,7 +53,7 @@ namespace Web_Scraper
         public string Author { get; set; }
         public string Link { get; set; }
     }
-    public class HLTVObject
+    public class HLTVObject             //HLTV object for combined results
     { 
         public string Type { get; set; }
         public string Name { get; set; }
@@ -82,7 +78,7 @@ namespace Web_Scraper
             var jsonString = JsonSerializer.Serialize(obj, options);
             File.WriteAllText(fileName, jsonString);
         }
-        
+
         public static ChromeOptions SetBrowserLanguage()
         {
             var languages = new Dictionary<string, string>()
@@ -110,7 +106,7 @@ namespace Web_Scraper
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            Console.WriteLine("Choose an option to look for:\n1. Search for videos/shorts on youtube\n2. Search for jobs on ICT-jobs\n3. Search for results on HLTV\n");
+            Console.WriteLine("Choose an option to look for:\n1. Search for videos on youtube\n2. Search for jobs on ICT-jobs\n3. Search for results on HLTV\n");
             int choice = Convert.ToInt32(Console.ReadLine());
             if (choice == 1)
             {
@@ -141,18 +137,18 @@ namespace Web_Scraper
                         Console.WriteLine($"-------------------------------------------------------Video{i}\nLink: {videoObjects[i - 1].Link}" +
                             $"\nTitle: {videoObjects[i - 1].Title}\nUploader: {videoObjects[i - 1].Uploader}\nViews: {videoObjects[i - 1].Views}\n");
                     }
-                    using (var writer = new StreamWriter("videos.csv"))
+                    using (var writer = new StreamWriter(@"C:\Users\appel\Desktop\Devops webscraper results\videos.csv"))
                     using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
                     {
                         csv.WriteRecords(videoObjects);
                     }
-                    PrettyWrite(videoObjects, "videos.json");
+                    PrettyWrite(videoObjects, @"C:\Users\appel\Desktop\Devops webscraper results\videos.json");
                 }
                 catch
                 {
-                    Console.WriteLine("---------------------------------------------------------------\n" +
-                        "No results found for that search term, try another search term.\n" +
-                        "---------------------------------------------------------------");
+                    Console.WriteLine("-----------------------------------------------------------------------------\n" +
+                        "No or not enough results found for that search term, try another search term.\n" +
+                        "-----------------------------------------------------------------------------");
                 }
                 finally
                 {
@@ -162,13 +158,14 @@ namespace Web_Scraper
             }
             else if (choice == 2)
             {
+                ChromeOptions language = SetBrowserLanguage();
                 var jobObjects = new List<Job>();
                 Console.WriteLine("Enter a search term for jobs on ICT-jobs: ");
                 string searchTerm = Console.ReadLine();
                 Console.WriteLine("How many jobs would you like to return: ");
                 int numberJobs = Convert.ToInt32(Console.ReadLine());
                 string url_ict_jobs = "https://www.ictjob.be/en/search-it-jobs?keywords=" + searchTerm;
-                IWebDriver driver = new ChromeDriver();
+                IWebDriver driver = new ChromeDriver(language);
                 driver.Navigate().GoToUrl(url_ict_jobs);
                 var timeout = 10000; 
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeout));
@@ -203,18 +200,18 @@ namespace Web_Scraper
                         Console.WriteLine($"-------------------------------------------------------Job {i + 1}\nTitle: {job.Title}" +
                            $"\nCompany: {job.Company}\nLocation: {job.Location}\nKeywords: {job.keywords}\nLink: {job.Link}\n");
                     }
-                    using (var writer = new StreamWriter("jobs.csv"))
+                    using (var writer = new StreamWriter(@"C:\Users\appel\Desktop\Devops webscraper results\jobs.csv"))
                     using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
                     {
                         csv.WriteRecords(jobObjects);
                     }
-                    PrettyWrite(jobObjects, "jobs.json");
+                    PrettyWrite(jobObjects, @"C:\Users\appel\Desktop\Devops webscraper results\jobs.json");
                 }
                 catch
                 {
-                    Console.WriteLine("---------------------------------------------------------------\n" +
-                        "No results found for that search term, try another search term.\n" +
-                        "---------------------------------------------------------------");
+                    Console.WriteLine("-----------------------------------------------------------------------------\n" +
+                        "No or not enough results found for that search term, try another search term.\n" +
+                        "-----------------------------------------------------------------------------");
                 }
                 finally
                 {
@@ -224,10 +221,11 @@ namespace Web_Scraper
             }
             else if(choice == 3)
             {
-                Console.WriteLine("Enter a search term for players/teams/events/articles in HLTV: ");
+                ChromeOptions language = SetBrowserLanguage();
+                Console.WriteLine("Enter a search term for players/teams/events/articles on HLTV: ");
                 string searchTerm = Console.ReadLine();
                 string url_hltv = "https://www.hltv.org/search?query=" + searchTerm;
-                IWebDriver driver = new ChromeDriver();
+                IWebDriver driver = new ChromeDriver(language);
                 driver.Navigate().GoToUrl(url_hltv);
                 var timeout = 10000; /* Maximum wait time of 10 seconds */
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeout));
@@ -252,9 +250,9 @@ namespace Web_Scraper
                     ReadOnlyCollection<IWebElement> elements = driver.FindElements(By.CssSelector("table[class=\"table\"]"));
                     if (elements.Count == 0)
                     {
-                        Console.WriteLine("---------------------------------------------------------------\n" +
-                       "No results found for that search term, try another search term.\n" +
-                       "---------------------------------------------------------------");
+                        Console.WriteLine("-----------------------------------------------------------------------------\n" +
+                       "No or not enough results found for that search term, try another search term.\n" +
+                       "-----------------------------------------------------------------------------");
                     }
                     else
                     {
@@ -344,21 +342,20 @@ namespace Web_Scraper
                                 counter = 1;
                                 Console.WriteLine("\n");
                             }
-                            Console.WriteLine(hltvObjectList.Count);
                         }
-                        using (var writer = new StreamWriter("hltv.csv"))
+                        using (var writer = new StreamWriter(@"C:\Users\appel\Desktop\Devops webscraper results\hltv.csv"))
                         using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
                         {
                             csv.WriteRecords(hltvObjectList);
                         }
-                        PrettyWrite(hltvObjectList, "hltv.json");
+                        PrettyWrite(hltvObjectList, @"C:\Users\appel\Desktop\Devops webscraper results\hltv.json");
                     }
                 }
                 catch
                 {
-                    Console.WriteLine("---------------------------------------------------------------\n" +
+                    Console.WriteLine("-----------------------------------------------------------------------------\n" +
                        "Something went wrong.\n" +
-                       "---------------------------------------------------------------");
+                       "-----------------------------------------------------------------------------");
                 }
                 finally
                 {
